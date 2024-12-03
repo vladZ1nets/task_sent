@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Веб-додаток
+  web_app:
+    build: .
+    command: python Homework_LAST_.py
+    ports:
+      - "5001:5001"  # Відкриваємо порт для доступу до Flask-додатку
+    environment:
+      - RABBITMQ_HOST=rabbit_host
+    depends_on:
+      - rabbitmq
+      - celery_worker
+
+  # RabbitMQ контейнер з менеджером для зручності
+  rabbitmq:
+    image: rabbitmq:3-management  # Завантажуємо RabbitMQ з менеджером
+    ports:
+      - "15672:15672"  # Для доступу до RabbitMQ Management UI
+      - "5672:5672"  # Для підключення до брокера через AMQP
+    hostname: rabbit_host  # Ім'я хоста для доступу інших контейнерів
+
+  # Celery Worker
+  celery_worker:
+    build: .
+    command: celery -A celery_tasks worker --loglevel=INFO --purge --pool=solo  # Запускаємо worker для обробки задач
+    environment:
+      - RABBITMQ_HOST=rabbit_host  # Вказуємо хост для RabbitMQ
+    depends_on:
+      - rabbitmq  # Переконуємось, що RabbitMQ запущений перед запуском worker
+
+
+
